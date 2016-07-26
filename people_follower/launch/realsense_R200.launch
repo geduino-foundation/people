@@ -1,0 +1,80 @@
+<launch>
+
+  <arg name="manager"      value="nodelet_manager" />
+  <arg name="camera"       default="camera" />
+  <arg name="camera_type"  default="R200" />
+  <arg name="serial_no"    default="" />
+  <arg name="usb_port_id"  default="" />
+
+  <arg name="enable_depth"      default="true" />
+  <arg name="enable_color"      default="true" />
+  <arg name="enable_pointcloud" default="true" />
+  <arg name="enable_tf"         default="true" />
+  <arg name="mode"              default="manual" />
+  <arg name="depth_width"       default="640" />
+  <arg name="depth_height"      default="480" />
+  <arg name="color_width"       default="640" />
+  <arg name="color_height"      default="480" />
+  <arg name="depth_fps"         default="30" />
+  <arg name="color_fps"         default="30" />
+
+  <param name="$(arg camera)/enable_depth"      type="bool" value="$(arg enable_depth)" />
+  <param name="$(arg camera)/enable_color"      type="bool" value="$(arg enable_color)" />
+  <param name="$(arg camera)/enable_pointcloud" type="bool" value="$(arg enable_pointcloud)" />
+  <param name="$(arg camera)/enable_tf"         type="bool" value="$(arg enable_tf)" />
+  <param name="$(arg camera)/mode"              type="str"  value="$(arg mode)" />
+  <param name="$(arg camera)/depth_width"       type="int"  value="$(arg depth_width)" />
+  <param name="$(arg camera)/depth_height"      type="int"  value="$(arg depth_height)" />
+  <param name="$(arg camera)/color_width"       type="int"  value="$(arg color_width)" />
+  <param name="$(arg camera)/color_height"      type="int"  value="$(arg color_height)" />
+  <param name="$(arg camera)/depth_fps"         type="int"  value="$(arg depth_fps)" />
+  <param name="$(arg camera)/color_fps"         type="int"  value="$(arg color_fps)" />
+
+  <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
+
+  <include file="$(find realsense_camera)/launch/includes/nodelet.launch.xml">
+    <arg name="manager"      value="$(arg manager)" />
+    <arg name="camera"       value="$(arg camera)" />
+    <arg name="camera_type"  value="$(arg camera_type)" />
+    <arg name="serial_no"    value="$(arg serial_no)" />
+    <arg name="usb_port_id"  value="$(arg usb_port_id)" />
+  </include>
+
+  <arg name="rgb_ns" default="color" />
+  <arg name="image_topic" default="image_raw" />
+  <arg name="depth_ns" default="depth" />
+  <arg name="depth_topic" default="image_raw" />
+  <arg name="fixed_frame" default="camera_rgb_optical_frame" />
+
+  <arg name="classifier_name" default="frontalface" />
+  <arg name="paramfile_classifier" default="$(find face_detector)/param/classifier.yaml"/>
+  <arg name="classifier_reliability" default="0.9"/>
+  <arg name="do_continuous" default="true" />
+  <arg name="do_publish_faces_of_unknown_size" default="false" />	
+  <arg name="do_display" default="true" />
+  <arg name="use_rgbd" default="true" />
+  <arg name="approximate_sync" default="true" />
+
+  <node pkg="face_detector" type="face_detector" name="facedetector" output="screen">
+    <remap from="rgb_ns" to="$(arg rgb_ns)" />
+    <remap from="depth_ns" to="$(arg depth_ns)" />
+    <remap from="image_topic" to="$(arg image_topic)" />
+    <remap from="depth_topic" to="$(arg depth_topic)" />    
+    <remap from="fixed_frame" to="$(arg fixed_frame)" />
+
+    <param name="classifier_name" type="string" value="$(arg classifier_name)" />
+    <rosparam command="load" file="$(arg paramfile_classifier)"/>
+    <param name="classifier_reliability" type="double" value="$(arg classifier_reliability)"/>
+    <param name="do_continuous" type="bool" value="$(arg do_continuous)" />
+    <param name="do_publish_faces_of_unknown_size" type="bool" value="$(arg do_publish_faces_of_unknown_size)" />	
+    <param name="do_display" type="bool" value="$(arg do_display)" />
+    <param name="use_rgbd" type="bool" value="$(arg use_rgbd)" />
+    <param name="approximate_sync" type="bool" value="$(arg approximate_sync)" />
+  </node>
+
+  <node pkg="people_follower" type="people_follower" name="people_follower">
+    <remap from="people_tracker_measurements" to="/face_detector/people_tracker_measurements_array" />
+  </node>
+
+</launch>
+
